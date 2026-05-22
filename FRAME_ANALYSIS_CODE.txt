@@ -1,0 +1,99 @@
+// ADD THIS CODE TO server/routes.ts around line 415
+// Insert this RIGHT AFTER the line: try {
+// This handles frame image analysis instead of full video processing
+
+// If a frame was captured, analyze it as an image instead of the video
+if (input.frameImage) {
+  console.log("[Video Analysis] Frame image provided, analyzing as image");
+  
+  const base64Parts = input.frameImage.split(",");
+  let mimeType = "image/jpeg";
+  let base64Data = input.frameImage;
+
+  if (base64Parts.length > 1) {
+    const mimeMatch = base64Parts[0].match(/:(.*?);/);
+    if (mimeMatch) mimeType = mimeMatch[1];
+    base64Data = base64Parts[1];
+  }
+
+  const prompt = `
+    FORENSIC IMAGE ANALYSIS - Provide a comprehensive narrative description.
+    
+    You are a forensic analyst examining this image (captured from video) for a police investigation. 
+    Write a detailed, professional narrative analysis describing everything you observe. Use complete 
+    sentences and paragraphs to create a flowing, comprehensive report.
+    
+    Your analysis should cover ALL of the following aspects in narrative form:
+    
+    1. PRIMARY VEHICLE: Describe the main vehicle's color, type, make, model, and any distinctive features
+    2. LICENSE PLATE: Identify and reconstruct the vehicle number plate (use Indian patterns like KL-XX-XX-XXXX, AP-XX-X-XXXX)
+    3. SCENE SETTING: Describe the time of day, weather conditions, lighting, and overall environment
+    4. LOCATION CONTEXT: Describe the type of area (urban/rural), road conditions, and any landmarks
+    5. VISIBLE OBJECTS: Describe all significant objects in the scene (barriers, poles, signs, buildings)
+    6. TEXT & SIGNAGE: Mention any readable text, shop names, signs, or advertisements
+    7. OTHER VEHICLES: Describe any other vehicles visible, including their type, color, and position
+    8. PEOPLE: Describe any people visible, their count, position, and what they appear to be doing
+    9. TRAFFIC ELEMENTS: Describe traffic signals, road signs, lane markings, or pedestrian crossings
+    10. IMAGE QUALITY: Assess the clarity, blur level, and overall visibility of the image
+    
+    Return ONLY valid JSON with this structure:
+    {
+      "numberPlate": "reconstructed plate number or Unknown",
+      "detailedAnalysis": "A comprehensive narrative description in 3-5 paragraphs covering all the aspects above. Write in complete sentences describing the scene, vehicles, people, environment, and all observable details in a flowing, professional forensic report style."
+    }
+    
+    IMPORTANT: The "detailedAnalysis" field should be a well-written narrative with proper paragraphs, 
+    NOT bullet points or lists. Use \\n\\n to separate paragraphs.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: [{
+      role: "user",
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType, data: base64Data } },
+      ],
+    }],
+    config: {
+      responseMimeType: "application/json",
+      temperature: 0.0,
+      candidateCount: 1,
+      maxOutputTokens: 2000,
+    },
+  });
+
+  const resultText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+  console.log(`[Gemini Frame Analysis]: ${resultText}`);
+
+  let predictedNumberPlate = "Unknown";
+  let analysisResult = "Could not analyze frame.";
+
+  if (resultText) {
+    try {
+      let cleanJson = resultText.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+      const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+      if (jsonMatch) cleanJson = jsonMatch[0];
+      const json = JSON.parse(cleanJson);
+
+      predictedNumberPlate = json.numberPlate || "Unknown";
+      analysisResult = json.detailedAnalysis || "Analysis completed but no detailed narrative was generated.";
+    } catch (e) {
+      console.warn("[Frame Analysis] JSON parse failed");
+      analysisResult = resultText;
+    }
+  }
+
+  const uniqueId = crypto.randomBytes(4).toString("hex").toUpperCase();
+  const finalAnalysisResult = `${analysisResult}\n\n---\nReport Unique Reference: KP-VA-${report.id}-${uniqueId}\n(Analyzed from captured video frame)`;
+
+  await storage.updateReport(report.id, {
+    status: "completed",
+    predictedNumberPlate,
+    analysisResult: finalAnalysisResult,
+  });
+
+  return; // Exit early, don't process the full video
+}
+
+// Continue with normal video processing below...

@@ -1,0 +1,33 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+ml/.venv/
+.venv/
+
+# ── Uploaded files (generated at runtime) ─────────────────────────────────────
+uploads/
+
+# ── Dataset / training data (large, not needed to run the app) ─────────────────
+ml/dataset/
+ml/dataset_raw/
+ml/dataset.zip
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+app.log
+
+# ── Secrets ────────────────────────────────────────────────────────────────────
+.env
+
+# ── Replit / local IDE files ────────────────────────────────────────────────────
+.local/
+attached_assets/
+.replit
+
+# ── Python cache ───────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+ml/**/__pycache__/
+
+# NOTE: ml/yolov8n.pt (6.2 MB trained model) IS included — it's needed to run predictions.
+# NOTE: ml/ source code and ml/service/ ARE included.

@@ -1,0 +1,6 @@
+path: C:/Users/hp/Desktop/Kerala-AI-Police/Kerala-AI-Police/Kerala-AI-Police/ml/dataset
+train: images/train
+val: images/val
+
+names:
+  0: license_plate
