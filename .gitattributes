@@ -1,0 +1,6 @@
+# Force LF for all key config files
+.nvmrc text eol=lf
+.npmrc text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
