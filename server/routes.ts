@@ -264,6 +264,11 @@ export async function registerRoutes(
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
+  // Health check endpoint for Render.com deployment monitoring
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Setup Auth
   setupAuth(app);
 
