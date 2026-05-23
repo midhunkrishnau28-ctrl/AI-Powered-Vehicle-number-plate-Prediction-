@@ -4,7 +4,7 @@ services:
     runtime: node
     region: singapore
     plan: free
-    buildCommand: npm install --include=dev --ignore-engines && npm run build
+    buildCommand: npm install --include=dev --ignore-engines && npm run build && npm run db:push
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
